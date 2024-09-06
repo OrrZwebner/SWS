@@ -1,0 +1,19 @@
+Traceback (most recent call last):
+  File "data_preprocessing.py", line 5, in <module>
+    from src.utilities import tokenize_and_label_function
+ModuleNotFoundError: No module named 'src'
+Traceback (most recent call last):
+  File "data_preprocessing.py", line 5, in <module>
+    from src.utilities import tokenize_and_label_function
+ModuleNotFoundError: No module named 'src'
+2024-09-01 08:34:51.365821: I tensorflow/core/util/port.cc:110] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2024-09-01 08:34:51.367898: I tensorflow/tsl/cuda/cudart_stub.cc:28] Could not find cuda drivers on your machine, GPU will not be used.
+2024-09-01 08:34:51.409595: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 AVX512F AVX512_VNNI FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+2024-09-01 08:34:52.033352: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
+Traceback (most recent call last):
+  File "data_preprocessing.py", line 11, in <module>
+    from model.model import WordSegmentation
+  File "/home/orrz/projects/NLP/Final_Project/src/model/model.py", line 8, in <module>
+    from src.data_preprocessing import preprocess_data
+ModuleNotFoundError: No module named 'src'
