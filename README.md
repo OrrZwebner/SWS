@@ -5,7 +5,7 @@ Our work focuses on developing a model for Sanskrit word segmentation using the 
 of unspaced Sanskrit texts, which is a common format in ancient manuscripts. Although our focus is on unspaced texts, we believe the model could be extended
 to handle sandhi with further adjustments and additional training.
 
-Dataset:
+**Dataset**:
 The dataset used in our experiments is the Digital Corpus of Sanskrit (DCS), created by Oliver Hellwig (2010-2021). The DCS is a comprehensive, Sandhi- split corpus of Sanskrit texts. Each string in the corpus has been analyzed and verified by a single annotator.
 The dataset’s overall size includes 670,479 lines and 5,989,632 words, and exhibits a mean string length of 50.69 characters and a median length of 46 characters, indicating a balanced mix of short and long strings in the corpus.
 The DCS dataset is publicly available through its official website and its GitHub repository.
