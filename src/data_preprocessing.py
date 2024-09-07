@@ -35,19 +35,14 @@ def preprocess_data(data_path, tokenizer, split_ratio=0.9):
         # if there is a column named 'token_type_ids' in the dataset, remove it
         if 'token_type_ids' in tokenized_dataset.column_names:
             tokenized_dataset = tokenized_dataset.remove_columns('token_type_ids')
-        # tokenized_dataset = load_dataset('csv', data_files=f'{data_path[:-4]}_tokenized.csv', split='train', streaming=True)
-        # tokenized_dataset = load_dataset('csv', data_files=f'{data_path[:-4]}_tokenized.csv', split='train')
         print(f'loaded tokenized dataset after {time.time()-start_time}')
 
-    # load the csv to a Dataset
-    # dataset = load_dataset('csv', data_files=data_path, split='train',streaming=True)
+
 
     else:
         dataset = load_dataset('csv', data_files=data_path, split='train')
         print(f'loaded dataset after {time.time()-start_time}')
 
-        # Tokenize the input and target texts using map and the tokenize_and_label_function 
-        # tokenized_dataset = dataset.map(tokenize_and_label_function, batched=False, fn_kwargs={'tokenizer': tokenizer, 'model': model})
         tokenized_dataset = dataset.map(tokenize_and_label_function, batched=False,load_from_cache_file=False, fn_kwargs={'tokenizer': tokenizer})
 
         # save the tokenized dataset to a csv file in the same directory as the original dataset
@@ -58,12 +53,9 @@ def preprocess_data(data_path, tokenizer, split_ratio=0.9):
     # remove the columns'input_text', 'target_text' from the dataset
     no_str_tokenized_dataset = tokenized_dataset.remove_columns(['input_text', 'target_text'])
 
-    print(f'tokenized dataset: {tokenized_dataset}')
-    # Split dataset into training and evaluation datasets
-    # split_dataset = tokenized_dataset.train_test_split(test_size=1-split_ratio)
+
     split_dataset = no_str_tokenized_dataset.train_test_split(test_size=1-split_ratio)
     train_dataset = split_dataset['train']
-    # train_dataset = split_dataset['train'].remove_columns(['input_text', 'target_text'])
     eval_dataset = split_dataset['test']
 
     print(f'train_dataset: {train_dataset}')

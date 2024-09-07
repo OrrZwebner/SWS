@@ -42,11 +42,6 @@ class CustomTrainer(Trainer):
         logits = logits.view(-1, logits.size(-1))  # [batch_size * sequence_length, num_classes]
         labels = labels.view(-1)  # [batch_size * sequence_length]
         # Calculate the weighted loss
-        # print logits labels and their shapes
-        # print(f'logits:{logits.shape}')
-        # print(f'labels:{labels.shape}')
-        # print(f'logits:{logits}')
-        # print(f'labels:{labels}')
         loss = weighted_loss_function(logits, labels, weight=self.class_weights)
         print (f'loss:{loss}')
         return (loss, outputs) if return_outputs else loss

@@ -47,58 +47,30 @@ def tokenize_and_label_function(text, tokenizer):
     )
 
     # Create labels for the targets
-    j = 0  # Pointer for target text
-    # space_token = tokenizer(' ', padding=True)['input_ids'][0] # Get the token ID for the space token byt5
-    # if model == "byt5":
-    # if tokenizer
-    #     space_token = tokenizer(' ')['input_ids'][0]
+
     if tokenizer.name_or_path == 'google/canine-s':
         space_token = tokenizer(' ')['input_ids'][1] # Get the token ID for the space token byt5
     else:
         space_token = tokenizer(' ')['input_ids'][0]
 
-    # space_token = 32 # Get the token ID for the space token b
-    # print(f'space_token: {space_token}')
+
 
     # create a lsit of zeros with the length of the input text
     labels = [0] * len(tokenized_inputs['input_ids'])
     spaces = 0 # the number of spaces in the input text
 
     # iterate over every token beside the last one in the input text
-    # print(f'tokenized_inputs["input_ids"]: {tokenized_inputs["input_ids"]}')
-    # print(f'tokenized_targets["input_ids"]: {tokenized_targets["input_ids"]}')
+
     for i, input_token in enumerate (tokenized_inputs['input_ids'][:-1]):
         # iterate over every token besides the last one in the input and target text. if the target token is a space, add a 1 to the labels list in the position of the token before the space
         # if the target token is not a space, akeep it as 0 to the labels list in the position of the token
-        # print(f'j+spaces: {j+spaces}')
-        # print(f'byt5_tokenized_targets["input_ids"][i+spaces]: {byt5_tokenized_targets["input_ids"][i+spaces]}')
-        # print(f'input_token: {input_token}')
         if tokenized_targets['input_ids'][i+spaces+1] == space_token and tokenized_inputs['input_ids'][i] != tokenizer.pad_token_id:
-            # if i != 0 and labels[i-1] != 1: # if the previous token in the target  is not a space
             labels[i] = 1 # add a 1 to the labels list in the position of the token before the space
             spaces += 1 # increment the number of spaces
-            # print(f'token {input_token} labeled as 1')
 
         # if the target token is a space and the input token is a padding token, add a -100 to the labels list in the position of the token
         elif tokenized_inputs['input_ids'][i] == tokenizer.pad_token_id:
             labels[i] = PAD_TOKEN_LABEL
-
-    # labels = []  # Initialize the list of labels
-
-    # for input_token in tokenized_inputs['input_ids']:
-    #     # iterate over every token in the input and target text. if the target token is a space, add a 1 to the labels list in the position of the token before the space
-    #     # if the target token is not a space, add a 0 to the labels list in the position of the token
-    #     if j < len(tokenized_targets['input_ids']) and tokenized_targets['input_ids'][j] == space_token and input_token != tokenizer.pad_token_id:
-    #         labels.append(1)
-    #         j += 1
-    #     else:
-    #         labels.append(0)
-    #     j += 1  
-
-    # # # add padding to labels
-    # # input_len = len(tokenized_inputs['input_ids'])  # Get the length of the tokenized input
-    # # if len(labels) < input_len:
-    # #     labels += [PAD_TOKEN_LABEL] * (input_len - len(labels))
 
     tokenized_inputs['labels'] = labels
 
@@ -126,9 +98,7 @@ def split_slp1(text):
         pattern = r'[a-zA-Z ]|\S'
 
         return re.findall(pattern, text)
-        # chars_list = [char[0] for char in re.findall(pattern, text)]
 
-        # return chars_list
 
 
 
@@ -149,7 +119,6 @@ def compute_metrics(pred):
         A dictionary containing the evaluation metrics.
     """
     # Load metrics
-    # print("Hi there!!!!!!")
     accuracy_metric = evaluate.load("accuracy", trust_remote_code=True)
     precision_metric = evaluate.load("precision", trust_remote_code=True)
     recall_metric = evaluate.load("recall", trust_remote_code=True)
@@ -172,21 +141,6 @@ def compute_metrics(pred):
     recall = recall_metric.compute(predictions=predictions, references=labels, average=None)
     f1 = f1_metric.compute(predictions=predictions, references=labels, average=None)
 
-    # # # list the metrics for the trainer to read them
-    # precision["precision"] = precision["precision"].tolist()
-    # recall["recall"] = recall["recall"].tolist()
-    # f1["f1"] = f1["f1"].tolist()
-
-
-    # # Combine all metrics into a single dictionary
-    # result = {
-    #     "eval_accuracy": accuracy["accuracy"],
-    #     "eval_precision": precision["precision"],
-    #     "eval_recall": recall["recall"],
-    #     "eval_f1": f1["f1"],
-    # }
-
-    # return result
 
         # Convert list metrics to individual class metrics
     result = {
@@ -209,7 +163,6 @@ def prune_model(model, pruning_amount=0.2):
         if isinstance(module, torch.nn.Linear):
             prune.l1_unstructured(module, name='weight', amount=pruning_amount)
             # Optionally, also prune biases
-            # prune.l1_unstructured(module, name='bias', amount=pruning_amount)
     return model
 
 
@@ -243,10 +196,6 @@ def spaces_decoder(tokenized_inputs, tokenizer):
     """
 
     # # verify that the space token is an int and a space token
-    # if not isinstance(space_token, int):
-    #     raise ValueError('space_token must be an integer')
-    # if tokenizer.decode(space_token) != ' ':
-    #     raise ValueError('space_token must be a space token')
 
     # if there are no keys of 'input_ids'  and 'labels' in the tokenized_inputs, raise a ValueError
     if 'input_ids' not in tokenized_inputs.keys():
@@ -257,7 +206,7 @@ def spaces_decoder(tokenized_inputs, tokenizer):
     # tokenized_inputs['input_ids'] is a tensor. if it has nestes lists, tensor([[value1, value2, ...]]), flatten the outer list and raise an error for unflattened tensors
     if isinstance(tokenized_inputs['input_ids'], torch.Tensor):
         tokenized_inputs['input_ids'] = tokenized_inputs['input_ids'].tolist()[0]
-        print(f' Unnesacary nested loop in the input ids tensor')
+        # print(f' Unnesacary nested loop in the input ids tensor')
 
 
 

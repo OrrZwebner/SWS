@@ -46,7 +46,6 @@ class WordSegmentation:
         self.data_path = data_path
         if model == 'byt5':
             self.tokenizer = AutoTokenizer.from_pretrained("google/byt5-small")
-            # self.model = AutoModelForTokenClassification.from_pretrained("google/byt5-small", num_labels=2)
             self.model = AutoModelForTokenClassification.from_pretrained("google/byt5-small", num_labels=2, device_map='auto')
         elif model == 'canine':
             self.tokenizer = AutoTokenizer.from_pretrained("google/canine-s")
@@ -77,26 +76,6 @@ class WordSegmentation:
             #Move the model to CUDA
             self.model = self.model.cuda()
         self.trainer = None
-
-                # Apply weight initialization
-        # self.initialize_weights()
-
-    # def initialize_weights(self):
-    #     """
-    #     Initializes the weights of the model layers.
-    #     """
-    #     # def _initialize_weights(m):
-    #     #     # if isinstance(m, torch.nn.Linear) or isinstance(m, torch.nn.Embedding):
-    #     #     #     torch.nn.init.xavier_uniform_(m.weight)
-    #     #     # if isinstance(m, torch.nn.Linear) and m.bias is not None:
-    #     #     #     torch.nn.init.zeros_(m.bias)
-    #     for name, module in self.model.named_modules():
-    #         if name == "classifier" and isinstance(module, torch.nn.Linear): # Initialize the classifier layer weights
-    #             torch.nn.init.xavier_uniform_(module.weight)
-    #             if module.bias is not None:
-    #                 torch.nn.init.zeros_(module.bias)
-
-        # self.model.apply(_initialize_weights)
 
     
     def set_datasets(self, train_dataset, eval_dataset, full_dataset=None):
@@ -136,9 +115,6 @@ class WordSegmentation:
         --------
         None
         """
-        # Calculate class weights based on the training dataset
-        # class_weights = calculate_class_weights(self.train_dataset).to(self.device)
-        # Manually set class weights
 
         start_time = time.time()
 
@@ -174,22 +150,7 @@ class WordSegmentation:
         # DataCollatorForTokenClassification is used to dynamically pad inputs and labels to the length of the longest sequence in a batch
         data_collator = DataCollatorForTokenClassification(self.tokenizer, padding=True, return_tensors="pt")
 
-        # if self.label_weight > 0:
-        #     class_weights = torch.tensor([1.0, float(self.label_weight)], dtype=torch.float).to(self.device)
-        #     self.trainer = CustomTrainer(
-        #         class_weights=class_weights,
-        #         model=self.model,
-        #         args=training_args,
-        #         train_dataset=self.train_dataset,
-        #         eval_dataset=self.eval_dataset,
-        #         tokenizer=self.tokenizer,
-        #         data_collator=data_collator,
-        #         # set max steps
-        #         max_steps=1000, # The maximum number of training steps to perform
-        #         compute_metrics=compute_metrics
-        #     )
 
-        # else:
         self.trainer = Trainer(
             model=self.model, # The instantiated 🤗 Transformers model to be trained
             args=training_args, # TrainingArguments
@@ -283,7 +244,6 @@ class WordSegmentation:
 
             print(f"\nOriginal: {input_text}")
             print(f"\nGround Truth: {target_text}")
-            # print(f"Saved Text: {self.eval_dataset[idx]['target_text']}")
             print(f"\nPredicted: {predicted_text}\n")
 
             # add the input_text, target_text, predicted_text to the results
@@ -324,11 +284,11 @@ class WordSegmentation:
 #             reserved_memory = torch.cuda.memory_reserved(i)
 #             print(f"GPU {i} - Step {state.global_step}: Allocated Memory: {allocated_memory / 1e6:.2f} MB, Reserved Memory: {reserved_memory / 1e6:.2f} MB")
 
-    def load_model(self, path="./models/word_segmentation"):
+    def load_model(self, path="./models/word_segmentation", tokenizer_name="google/byt5-small"):
         """
         Loads the model and tokenizer from the specified path.
         """
-        self.tokenizer = AutoTokenizer.from_pretrained(path)
+        self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name)
         self.model = AutoModelForTokenClassification.from_pretrained(path)
 
         if not self.parallel_devices:
