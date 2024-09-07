@@ -1,0 +1,15 @@
+dataset:
+  data_path: "DCS_dataset.csv"
+  split_ratio: 0.9
+
+model:
+  name: "byt5"
+  device: "cuda:0"
+  parallel_devices: False
+  device_ids: [0, 1, 2, 3]
+
+train:
+  lr: 5e-4
+  num_epochs: 5
+  batch_size: 1
+
