@@ -4,10 +4,11 @@ import torch
 import re
 import evaluate
 import torch.nn.utils.prune as prune
+import os
 
 
 # def tokenize_and_label_function(text, tokenizer, model="byt5", max_length=512):
-def tokenize_and_label_function(text, tokenizer):
+def tokenize_and_label_function(text, tokenizer, input_col='input_text', target_col='target_text'):
     """
     Tokenizes the input and target texts at the SLP1 token level.
 
@@ -27,9 +28,29 @@ def tokenize_and_label_function(text, tokenizer):
 
     PAD_TOKEN_LABEL = -100
 
+    # raise a value error if the input text is not a pandas series, and if the entries in the input text and target columns are not strings
+    if not isinstance(text, pd.Series):
+        raise ValueError("The input text must be a pandas series.")
+    
+    if not isinstance(text[input_col], str):
+        raise ValueError("The input text must be a string.")
+    
+    if not isinstance(text[target_col], str):
+        raise ValueError("The target text must be a string.")
+
+    # raise a value error if input text consist spaces. note that it is a string, not a list
+    if ' ' in text[input_col]:
+        raise ValueError("The input text should not contain spaces.")
+    
+    # raise a value error if target text consist duplicated spaces
+    # if '  ' in text[target_col]:
+    #     # print where the duplicated spaces are in the string
+    #     print(f"target text: {text[target_col]}")
+    #     raise ValueError("The target text should not contain duplicated spaces.")
+
     # Tokenize the inputs with padding and truncation
     tokenized_inputs = tokenizer(
-        text['input_text']  # The input text 
+        text[input_col]  # The input text 
         # padding=True,  # Let DataCollator handle padding
         # padding='max_length',  # Pad to the maximum length
         # truncation=True,  # Truncate sequences that are longer than the maximum length
@@ -38,7 +59,7 @@ def tokenize_and_label_function(text, tokenizer):
     )
 
     tokenized_targets = tokenizer(
-        text['target_text']  # The target text
+        text[target_col]  # The target text
         # padding=True,  # Let DataCollator handle padding  
         # padding='max_length',
         # truncation=True,  # Truncate sequences that are longer than the maximum length
@@ -64,6 +85,7 @@ def tokenize_and_label_function(text, tokenizer):
     for i, input_token in enumerate (tokenized_inputs['input_ids'][:-1]):
         # iterate over every token besides the last one in the input and target text. if the target token is a space, add a 1 to the labels list in the position of the token before the space
         # if the target token is not a space, akeep it as 0 to the labels list in the position of the token
+        # print(f"tokenized_targets['input_ids']: {tokenized_targets['input_ids']}\nlen(tokenized_targets['input_ids']): {len(tokenized_targets['input_ids'])}\nspaces: {spaces}\n i: {i}\n tokenized_inputs['input_ids']: {tokenized_inputs['input_ids']}\nlen(tokenized_inputs['input_ids']): {len(tokenized_inputs['input_ids'])}")
         if tokenized_targets['input_ids'][i+spaces+1] == space_token and tokenized_inputs['input_ids'][i] != tokenizer.pad_token_id:
             labels[i] = 1 # add a 1 to the labels list in the position of the token before the space
             spaces += 1 # increment the number of spaces
@@ -124,16 +146,23 @@ def compute_metrics(pred):
     recall_metric = evaluate.load("recall", trust_remote_code=True)
     f1_metric = evaluate.load("f1", trust_remote_code=True)
 
-    predictions, labels = pred.predictions, pred.label_ids
-    predictions = torch.tensor(predictions)
-    labels = torch.tensor(labels)
+    # Comptue metrics for models without training
+    if isinstance(pred, dict):
+        predictions = pred['predictions']
+        labels = pred['labels']
 
-    # Calculate the predicted labels
-    predictions = torch.argmax(predictions, dim=-1)
+    # Compute metrics for models with training
+    else:
+        predictions, labels = pred.predictions, pred.label_ids
+        predictions = torch.tensor(predictions)
+        labels = torch.tensor(labels)
 
-    # Flatten the tensors to avoid dimension issues
-    predictions = predictions.view(-1)
-    labels = labels.view(-1)
+        # Calculate the predicted labels
+        predictions = torch.argmax(predictions, dim=-1)
+
+        # Flatten the tensors to avoid dimension issues
+        predictions = predictions.view(-1)
+        labels = labels.view(-1)
 
     # Calculate each metric
     accuracy = accuracy_metric.compute(predictions=predictions, references=labels)
@@ -215,12 +244,13 @@ def spaces_decoder(tokenized_inputs, tokenizer):
     else:
         space_token = tokenizer(' ')['input_ids'][0]
 
-        
     # create a new tokened text - add a space token after every token that is labeled as 1 in byt5_tokenized_inputs['input_ids']. do not decode, creae a list of token ids with added spaces
     new_input_ids = []
     for i, token in enumerate(tokenized_inputs['input_ids']):
         new_input_ids.append(token)
-        if tokenized_inputs['labels'][i] == 1:
+        # if the token is a space token, add a space token to the new_input_ids. 
+        # verify that the token is not a space or part of an slp1 character
+        if tokenized_inputs['labels'][i] == 1 and tokenizer.decode(token) != ' ' and  tokenizer.decode(token) != '': 
             new_input_ids.append(space_token)
 
     # Decode the input_ids to get the original input text
@@ -229,3 +259,92 @@ def spaces_decoder(tokenized_inputs, tokenizer):
     decoded_text
 
     return decoded_text
+
+
+def remove_extra_spaces(text):
+    """
+    Removes extra spaces from the input string, replacing multiple spaces with a single space.
+
+    Parameters:
+    -----------
+    text : str
+        The input string that may contain multiple spaces.
+
+    Returns:
+    --------
+    str
+        The input string with extra spaces removed.
+    """
+    cleaned_text = ' '.join(text.split())
+    if cleaned_text != text:  # If any change happened
+        print("Extra spaces were found and removed.")
+    return cleaned_text
+
+
+
+def predict_labels(df, model, dataset_name, input_col, target_col):
+    """
+    Processes the DataFrame by tokenizing and labeling the inputs and targets, and predicting labels using the model.
+    
+    Parameters:
+    -----------
+    df : pandas.DataFrame
+        The DataFrame containing the input texts and target texts.
+    model : transformers.PreTrainedModel
+        The pre-trained model used to predict labels.
+    tokenizer : transformers.PreTrainedTokenizer
+        The tokenizer to tokenize the input and target texts.
+    dataset_name : str
+        The name of the dataset to be used in the saved CSV file.
+    input_col : str, optional
+        The column name for the input texts. Default is 'unsandhied_input_text'.
+    target_col : str, optional
+        The column name for the target texts. Default is 'unsandhied'.
+
+    Returns:
+    --------
+    pd.DataFrame
+        The updated DataFrame with target and predicted labels.
+    """
+    # Ensure there are no spaces in the input_col values
+    if df[input_col].apply(lambda x: " " in x).any():
+        raise ValueError(f"The {input_col} column contains spaces. Please remove spaces from the input text.")
+    
+    # Tokenize and label the target column directly using your function
+    tokenized_and_labelled = df.apply(
+        tokenize_and_label_function, 
+        axis=1, 
+        tokenizer=model.tokenizer, 
+        input_col=input_col, 
+        target_col=target_col
+    )
+    
+    # Add the labels from tokenized data into the dataframe as target_labels
+    df["target_labels"] = tokenized_and_labelled.apply(lambda x: x['labels'])
+    
+    # Predict the labels using the model (assuming the predict function is provided)
+    df["predictions"] = df[input_col].apply(lambda  x: model.predict(x))
+
+
+    tokenized_and_predicted = df.apply(
+        tokenize_and_label_function, 
+        axis=1, 
+        tokenizer=model.tokenizer, 
+        input_col=input_col, 
+        target_col="predictions"
+    )
+
+
+    df["predicted_labels"] = tokenized_and_predicted.apply(lambda x: x['labels'])
+    
+    # Create output directory if it doesn't exist
+    output_dir = "data"
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    
+    # Save the DataFrame with labels to CSV file, using dataset_name in the file name
+    csv_file_name = f"{output_dir}/{dataset_name}_with_predictions_labels.csv"
+    df.to_csv(csv_file_name, index=False)
+    print(f"DataFrame saved successfully to {csv_file_name}")
+    
+    return df
